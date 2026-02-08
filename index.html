@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Predictably Weird</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    :root{
+      /* Predictably Weird palette (pulled from the logo) */
+      --peach: #FED8B6;
+      --gold:  #F0D080;
+      --gold2: #F0D070;
+      --cream: #FFF6DC;
+
+      --aqua:  #80D0D0;
+      --aqua2: #80D0C0;
+      --teal:  #50A0B0;
+      --deep:  #105070;
+      --deep2: #003060;
+
+      --ink:   #081923;
+      --line:  rgba(16,80,112,.28);
+      --glass: rgba(255,255,255,.58);
+
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+    }
+
+    html, body {
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      background: linear-gradient(120deg, #f5d7af, #a8dadc, #ffd6a5);
+      background-size: 400% 400%;
+      animation: gradientShift 30s ease infinite;
+      font-family: 'Space Grotesk', system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      cursor: default;
+      transition: background 1s ease;
+      color: rgb(30 41 59); /* slate-800 */
+    }
+
+    @keyframes gradientShift {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    /* After "Enter": desaturate to paper */
+    html.entered, body.entered{
+      overflow-y: auto;
+      background: #fefcf6;
+      animation: none;
+    }
+    body.entered{
+      transition: background 1s ease;
+    }
+    /* a faint, low-sat aura so the page doesn't go dead */
+    body.entered::after{
+      content:"";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 1;
+      opacity: .35;
+      background:
+        radial-gradient(900px 600px at 12% 10%, rgba(128,208,208,.26), transparent 60%),
+        radial-gradient(900px 650px at 88% 15%, rgba(80,160,176,.20), transparent 62%),
+        radial-gradient(1000px 700px at 50% 105%, rgba(240,208,128,.24), transparent 65%);
+    }
+
+    canvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      z-index: 0;
+    }
+
+    #content {
+      position: relative;
+      z-index: 6;
+      width: 100%;
+      display: flex;
+      justify-content: center;
+    }
+
+    .fade-line {
+      opacity: 0;
+      transform: translateY(8px);
+      transition: opacity 1s ease, transform 1s ease;
+    }
+    .fade-line.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .legal-link {
+      position: fixed;
+      bottom: 12px;
+      right: 16px;
+      font-size: 0.85rem;
+      color: #374151;
+      opacity: 0.7;
+      transition: opacity 0.2s ease;
+      z-index: 10;
+    }
+    .legal-link:hover { opacity: 1; }
+
+    /* ==== Tilted contact box (from econtact.html) ==== */
+    a{ color:inherit; text-decoration:none; }
+    a:focus-visible{
+      outline: 3px solid rgba(240,208,128,.70);
+      outline-offset: 4px;
+      border-radius: 14px;
+    }
+
+    .stage-wrap{
+      width: 100%;
+      display: flex;
+      justify-content: center;
+      padding: 6vh 0 10vh;
+      opacity: 0;
+      transform: translateY(16px);
+      transition: opacity .7s ease, transform .7s ease;
+    }
+    .stage-wrap.visible{
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .stage{
+      width: min(980px, calc(100vw - 40px));
+      position:relative;
+      transform: rotate(-1.6deg) skewX(-1.2deg);
+      transform-origin: 50% 20%;
+
+      border: 2px solid rgba(16,80,112,.46);
+      border-radius: 22px;
+
+      background:
+        linear-gradient(180deg, rgba(255,255,255,.80), rgba(255,255,255,.52)),
+        radial-gradient(900px 380px at 8% 0%, rgba(128,208,208,.30), transparent 62%),
+        radial-gradient(800px 360px at 96% 10%, rgba(240,208,128,.32), transparent 58%);
+      backdrop-filter: blur(16px);
+
+      box-shadow:
+        0 35px 120px rgba(16,80,112,.26),
+        0 0 0 1px rgba(128,208,208,.35) inset,
+        0 0 0 1px rgba(240,208,128,.22) inset;
+
+      overflow:hidden;
+      font-family: var(--mono);
+      color: var(--deep2);
+    }
+
+    /* bold neon-ish edge + corner “tape” */
+    .stage::before{
+      content:"";
+      position:absolute;
+      inset:-3px;
+      border-radius: 26px;
+      box-shadow:
+        -16px -16px 0 rgba(128,208,208,.62),
+        16px  16px 0 rgba(240,208,128,.58),
+        0 0 0 2px rgba(16,80,112,.20);
+      pointer-events:none;
+      opacity: 1;
+    }
+
+    /* punchy inner accents (scanline + glow specks) */
+    .stage::after{
+      content:"";
+      position:absolute;
+      inset:0;
+      border-radius: 22px;
+      pointer-events:none;
+      background:
+        repeating-linear-gradient(
+          180deg,
+          rgba(16,80,112,.06) 0px,
+          rgba(16,80,112,.06) 1px,
+          transparent 1px,
+          transparent 7px
+        ),
+        radial-gradient(900px 420px at 10% 15%, rgba(128,208,208,.22), transparent 60%),
+        radial-gradient(900px 420px at 92% 20%, rgba(240,208,128,.20), transparent 58%);
+      mix-blend-mode: multiply;
+      opacity: .9;
+    }
+
+    header{
+
+      position:relative;
+      display:flex;
+      justify-content:space-between;
+      align-items:flex-end;
+      gap: 14px;
+      padding: 20px 18px 14px;
+      background:
+        linear-gradient(90deg, rgba(128,208,208,.40), rgba(255,255,255,0) 46%, rgba(240,208,128,.38));
+      border-bottom: 1px dashed rgba(16,80,112,.28);
+      z-index:2;
+    }
+
+    .brand{
+      display:flex;
+      align-items:center;
+      gap:12px;
+      min-width:0;
+    }
+
+    .pulse{
+      width: 14px; height: 14px; border-radius: 999px;
+      background: conic-gradient(from 180deg, var(--aqua), var(--teal), var(--gold2), var(--peach), var(--aqua));
+      outline: 1px solid rgba(16,80,112,.28);
+      outline-offset: 7px;
+      box-shadow:
+        0 0 0 12px rgba(255,255,255,.34),
+        0 0 24px rgba(128,208,208,.38),
+        0 0 22px rgba(240,208,128,.28);
+      animation: breathe 2.1s ease-in-out infinite;
+      flex: 0 0 auto;
+    }
+    @keyframes breathe{ 0%,100%{transform:scale(1)} 50%{transform:scale(1.06)} }
+
+    .stage h1{
+      margin:0;
+      font-size: 12px;
+      letter-spacing: 3.4px;
+      text-transform: uppercase;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+
+    .meta{
+      margin:0;
+      font-size: 11px;
+      letter-spacing: 2.2px;
+      text-transform: uppercase;
+      opacity:.72;
+      white-space:nowrap;
+    }
+
+    .links{
+      position:relative;
+      z-index:2;
+      padding: 16px 14px 18px;
+      display:grid;
+      gap: 10px;
+    }
+    .links p{
+      margin: 6px 2px 10px;
+      line-height: 1.55;
+      color: rgba(16,80,112,.92);
+      font-size: 13px;
+      letter-spacing: .2px;
+    }
+
+    .link{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap: 14px;
+      padding: 15px 14px 15px 16px;
+      border-radius: 16px;
+      border: 1.5px solid rgba(16,80,112,.30);
+      background: rgba(255,255,255,.72);
+      position:relative;
+      overflow:hidden;
+      transition: transform .12s ease, box-shadow .12s ease, border-color .12s ease;
+    }
+
+    /* LEFT ACCENT BAR (loud, on-brand) */
+    .link::before{
+      content:"";
+      position:absolute;
+      left:0; top:0; bottom:0;
+      width: 7px;
+      background: linear-gradient(180deg, rgba(0,48,96,.96) 0%, rgba(80,160,176,.98) 55%, rgba(240,208,128,.96) 130%);
+      box-shadow: 0 0 0 1px rgba(16,80,112,.18) inset;
+      opacity: .95;
+      pointer-events:none;
+    }
+
+    /* color wash + corner flare */
+    .link::after{
+      content:"";
+      position:absolute;
+      inset:0;
+      background:
+        radial-gradient(800px 180px at 0% 0%, rgba(128,208,208,.48), transparent 60%),
+        radial-gradient(900px 220px at 100% 100%, rgba(240,208,128,.46), transparent 55%),
+        linear-gradient(135deg, transparent 0 44%, rgba(16,80,112,.16) 44% 46%, transparent 46% 100%);
+      opacity: 1;
+      pointer-events:none;
+      mix-blend-mode: multiply;
+    }
+
+    .link:hover,
+    .link:focus-visible{
+      transform: translateX(8px);
+      border-color: rgba(16,80,112,.46);
+      box-shadow: 0 22px 70px rgba(16,80,112,.22), 0 0 0 1px rgba(240,208,128,.22) inset;
+    }
+    .link:hover::before,
+    .link:focus-visible::before{ opacity:1; }
+
+    .label{
+      font-size: 12px;
+      letter-spacing: 2.6px;
+      text-transform: uppercase;
+      position:relative;
+      z-index:1;
+      color: rgba(0,48,96,.92);
+      text-shadow: 0 1px 0 rgba(255,255,255,.45);
+    }
+    .tag{
+      font-size: 11px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      opacity:.78;
+      color: rgba(16,80,112,.78);
+      white-space:nowrap;
+      position:relative;
+      z-index:1;
+    }
+
+    footer{
+      position:relative;
+      z-index:2;
+      padding: 12px 18px 18px;
+      border-top: 1px dashed rgba(16,80,112,.28);
+      display:flex;
+      justify-content:space-between;
+      gap: 10px;
+      flex-wrap:wrap;
+      font-size: 11px;
+      letter-spacing: 2.2px;
+      text-transform: uppercase;
+      opacity:.7;
+    }
+
+    /* THE KRAKEN (minimal line-art), living behind everything */
+    .kraken{
+      position:absolute;
+      inset: 40px -20px auto auto;
+      width: min(420px, 62vw);
+      opacity: .72;
+      filter: drop-shadow(0 25px 40px rgba(16,80,112,.16));
+      transform: rotate(6deg);
+      pointer-events:none;
+      z-index:0;
+    }
+
+    .k-stroke{
+      stroke: var(--deep);
+      stroke-width: 2.2;
+      fill: none;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      opacity: .88;
+    }
+    .k-accent{ stroke: var(--teal); opacity: .70; }
+    .k-accent2{ stroke: var(--aqua); opacity: .65; }
+
+    /* subtle “ink draw” animation */
+    .draw{
+      stroke-dasharray: 900;
+      stroke-dashoffset: 900;
+      animation: draw 1.8s ease-out forwards;
+    }
+    @keyframes draw{ to{ stroke-dashoffset: 0; } }
+
+  </style>
+</head>
+
+<body class="flex items-center justify-center text-slate-800">
+
+  <canvas id="circuit" aria-hidden="true"></canvas>
+
+  <div id="content" class="w-full">
+    <!-- Intro (index.html) -->
+    <div id="intro" class="space-y-5 text-center px-8">
+      <p class="fade-line text-2xl md:text-3xl font-light">Hello, human!</p>
+      <p class="fade-line text-2xl md:text-3xl font-light">Welcome to this</p>
+      <p class="fade-line text-2xl md:text-3xl font-light">place, I suppose...</p>
+      <button id="enterBtn" class="enter-button mt-8 border border-slate-700 px-6 py-2 rounded-full text-slate-700 hover:bg-slate-700 hover:text-white transition-colors duration-300 opacity-0">
+        Enter
+      </button>
+    </div>
+
+    <!-- Post-enter (tilted box from econtact.html) -->
+    <div id="postEnter" class="hidden w-full">
+      <div class="stage-wrap" id="stageWrap">
+        <!-- Robot-head + octopus arms (replaces kraken to match logo vibe) -->
+        <svg class="kraken" viewBox="0 0 820 620" aria-hidden="true">
+            <!-- robot head -->
+            <path class="k-stroke draw" d="M316 140H504a46 46 0 0 1 46 46V284a46 46 0 0 1-46 46H316a46 46 0 0 1-46-46V186a46 46 0 0 1 46-46Z" />
+
+            <!-- side pods -->
+            <rect class="k-stroke k-accent draw" x="234" y="204" width="46" height="112" rx="18" />
+            <rect class="k-stroke k-accent draw" x="540" y="204" width="46" height="112" rx="18" />
+
+            <!-- antennae -->
+            <path class="k-stroke k-accent2 draw" d="M352 140V92" />
+            <path class="k-stroke k-accent2 draw" d="M468 140V92" />
+            <circle class="k-stroke k-accent2 draw" cx="352" cy="74" r="18" />
+            <circle class="k-stroke k-accent2 draw" cx="468" cy="74" r="18" />
+
+            <!-- eyes -->
+            <circle class="k-stroke draw" cx="365" cy="235" r="48" />
+            <circle class="k-stroke draw" cx="455" cy="235" r="48" />
+            <circle class="k-stroke k-accent draw" cx="365" cy="235" r="18" />
+            <circle class="k-stroke k-accent draw" cx="455" cy="235" r="18" />
+
+            <!-- mouth -->
+            <path class="k-stroke k-accent draw" d="M392 288H428" />
+
+            <!-- octopus arms -->
+            <path class="k-stroke draw" d="M320 330C250 350 205 390 195 445C180 520 255 555 305 575" />
+            <path class="k-stroke k-accent draw" d="M345 330C300 375 265 420 255 470C240 540 295 570 340 590" />
+            <path class="k-stroke draw" d="M370 330C350 390 335 450 350 515C365 575 330 605 315 615" />
+            <path class="k-stroke k-accent2 draw" d="M395 330C390 395 395 460 410 535C425 600 395 612 382 620" />
+            <path class="k-stroke k-accent2 draw" d="M425 330C430 395 425 460 410 535C395 600 425 612 438 620" />
+            <path class="k-stroke draw" d="M450 330C470 390 490 450 480 520C470 585 510 600 535 615" />
+            <path class="k-stroke k-accent draw" d="M475 330C525 375 565 420 575 470C590 540 535 570 490 590" />
+            <path class="k-stroke draw" d="M500 330C570 350 615 390 625 445C640 520 565 555 515 575" />
+
+            <!-- small “signal spikes” -->
+            <path class="k-stroke k-accent2 draw" d="M610 165l22-18m-8 40l28-6m-60-34l-8-26" />
+          </svg>
+        <main class="stage" aria-label="Predictably Weird contact links">
+
+          <header>
+            <div class="brand">
+              <span class="pulse" aria-hidden="true"></span>
+              <h1>Predictably Weird</h1>
+            </div>
+            <p class="meta">AI safety · alignment</p>
+          </header>
+
+          <section class="links" aria-label="Links">
+
+            <p>This is Phil Blandfort's research lab, currently investigating moral preferences of AI models and fine-tuning effects.</p>
+
+            <a class="link" href="https://scholar.google.com/citations?user=NCtMAPMAAAAJ&hl=en" target="_blank" rel="noreferrer" aria-label="Publications">
+              <span class="label">Publications</span>
+              <span class="tag">papers</span>
+            </a>
+
+            <a class="link" href="mailto:website@predictablyweird.com" aria-label="Email">
+              <span class="label">Email</span>
+              <span class="tag">direct</span>
+            </a>
+
+            <a class="link" href="https://linkedin.com/in/philipp-blandfort" target="_blank" rel="noreferrer" aria-label="LinkedIn">
+              <span class="label">LinkedIn</span>
+              <span class="tag">social</span>
+            </a>
+
+            <p>PS: Pardon the misaligned website, we accidentally put too many letters to the left and that must have tilted the box…</p>
+
+          </section>
+
+          <footer>
+            <span>out-of-box</span>
+            <span><a href="legal.html" target="_blank" rel="noreferrer" style="text-decoration: underline; text-decoration-color: rgba(240,208,128,.75); text-underline-offset: 3px;">legal notice</a></span>
+            <span>Copyright etc.</span>
+          </footer>
+        </main>
+      </div>
+    </div>
+  </div>
+
+  <a href="legal.html" class="legal-link" target="_blank" rel="noreferrer">Legal Notice</a>
+
+  <script>
+    // 🕐 Intro pacing (kept from index.html)
+    const lines = document.querySelectorAll(".fade-line");
+    const enterBtn = document.getElementById("enterBtn");
+    const intro = document.getElementById("intro");
+    const postEnter = document.getElementById("postEnter");
+    const stageWrap = document.getElementById("stageWrap");
+
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    if (reduceMotion) {
+      lines.forEach((line) => line.classList.add("visible"));
+      enterBtn.classList.add("opacity-100");
+    } else {
+      lines.forEach((line, i) => setTimeout(() => line.classList.add("visible"), i * 1100));
+      setTimeout(() => enterBtn.classList.add("opacity-100"), 4200);
+    }
+
+    // 🚪 Enter -> desaturate background, start moving circuits, reveal tilted box + roaming logo
+    enterBtn.addEventListener("click", () => {
+      document.documentElement.classList.add("entered");
+      document.body.classList.add("entered");
+
+      // Tailwind alignment: stop vertically-centering once the page becomes scrollable.
+      document.body.classList.remove("items-center");
+      document.body.classList.add("items-start");
+
+      intro.classList.add("hidden");
+      postEnter.classList.remove("hidden");
+
+      // allow CSS transitions to run
+      requestAnimationFrame(() => stageWrap.classList.add("visible"));
+
+      // background "loses color" as in the original index.html
+      document.body.style.background = "#fefcf6";
+
+      if (!reduceMotion) {
+        startCircuitAnimation();
+        startGhostWander();
+      } else {
+        // still show the logo, just parked nicely
+        ghost.classList.remove("hidden");
+        ghost.style.transform = `translate(${Math.max(10, window.innerWidth - 220)}px, 24px) rotate(2deg)`;
+      }
+    });
+
+    // 🌐 Circuit animation (kept from index.html, with a one-time guard)
+    let circuitRunning = false;
+    function startCircuitAnimation() {
+      if (circuitRunning) return;
+      circuitRunning = true;
+
+      const canvas = document.getElementById("circuit");
+      const ctx = canvas.getContext("2d", { alpha: true });
+
+      function resize() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+      }
+      resize();
+
+      const lines = Array.from({ length: 44 }, () => ({
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
+        len: 60 + Math.random() * 140,
+        spd: 0.25 + Math.random() * 0.85,
+        dir: Math.random() * Math.PI * 2,
+        hue: 175 + Math.random() * 55
+      }));
+
+      function draw() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.lineWidth = 1.2;
+
+        for (const l of lines) {
+          ctx.beginPath();
+          ctx.strokeStyle = `hsla(${l.hue}, 40%, 40%, 0.22)`;
+          ctx.moveTo(l.x, l.y);
+          const x2 = l.x + Math.cos(l.dir) * l.len;
+          const y2 = l.y + Math.sin(l.dir) * l.len;
+          ctx.lineTo(x2, y2);
+          ctx.stroke();
+
+          l.x += Math.cos(l.dir) * l.spd;
+          l.y += Math.sin(l.dir) * l.spd;
+
+          if (l.x < -100) l.x = canvas.width + 100;
+          if (l.y < -100) l.y = canvas.height + 100;
+          if (l.x > canvas.width + 100) l.x = -100;
+          if (l.y > canvas.height + 100) l.y = -100;
+        }
+
+        requestAnimationFrame(draw);
+      }
+      draw();
+
+      window.addEventListener("resize", resize);
+    }
+  </script>
+</body>
+</html>
